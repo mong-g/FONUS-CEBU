@@ -33,6 +33,16 @@ export default function Navbar() {
               Federation of Cooperative
             </span>
           </div>
+          <div className="bg-white p-0.5 rounded-full relative h-11 w-11 overflow-hidden border border-white/20 ml-1">
+            <Image 
+              src="/coop.png" 
+              alt="Coop Logo" 
+              fill
+              priority
+              className="object-contain scale-125"
+              sizes="44px"
+            />
+          </div>
         </Link>
         
         <div className="hamburger md:hidden text-3xl cursor-pointer text-white" onClick={toggleMenu}>

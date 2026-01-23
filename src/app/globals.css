@@ -1,27 +1,27 @@
 @import "tailwindcss";
 @plugin "daisyui";
 @plugin "daisyui/theme" {
-  name: "brown";
+  name: "brown"; /* Keeping the name 'brown' but updating colors to maroon to avoid breaking layout.tsx */
   default: true;
   prefersdark: false;
   color-scheme: light;
 
-  /* Precise colors from design */
-  --color-base-100: oklch(98.5% 0.005 80); /* #FDFBF7 */
+  /* Precise Maroon-White Colors */
+  --color-base-100: oklch(98.5% 0.005 80); /* Off-white Cream */
   --color-base-200: oklch(95% 0.01 80);
   --color-base-300: oklch(90% 0.02 80);
-  --color-base-content: oklch(28% 0 0); /* #2D2D2D */
+  --color-base-content: oklch(25% 0.02 20); /* Dark grey-maroon */
 
-  --color-primary: oklch(25% 0.04 20); /* #3E2723 */
+  --color-primary: oklch(28% 0.08 20); /* Deep Maroon */
   --color-primary-content: oklch(98% 0.01 80);
   
-  --color-secondary: oklch(35% 0.05 20); /* #5D4037 */
+  --color-secondary: oklch(40% 0.12 25); /* Rich Burgundy */
   --color-secondary-content: oklch(98% 0.01 80);
   
-  --color-accent: oklch(70% 0.12 80); /* #C5A059 */
-  --color-accent-content: oklch(25% 0.04 20);
+  --color-accent: oklch(65% 0.15 30); /* Warm Maroon/Rose */
+  --color-accent-content: oklch(98% 0.01 80);
   
-  --color-neutral: oklch(20% 0.03 20);
+  --color-neutral: oklch(20% 0.04 20);
   --color-neutral-content: oklch(98% 0.01 80);
   
   --radius-selector: 50px;

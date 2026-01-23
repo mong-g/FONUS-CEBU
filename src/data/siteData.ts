@@ -4,6 +4,7 @@ export const siteData: SiteData = {
   general: {
     name: "FONUS CEBU",
     fullName: "FONUS CEBU FEDERATION COOPERATIVE",
+    taglineLocal: "Usa sa labing barato ug Trusted Funeral Services sa Cebu"
   },
   hero: {
     badge: "Region 7's Pioneer",
@@ -28,42 +29,97 @@ export const siteData: SiteData = {
   },
   packages: [
     {
-      name: "Mercury",
-      price: "₱600",
+      name: "ROSA PEACE MEMORIAL PLAN",
+      price: "₱267",
+      contractPrice: "₱16,020",
+      spotCash: "₱14,418",
       features: [
-        "Service Value: 20K",
-        "Natural Death: 10K",
-        "Accidental: 70K"
+        "9 Days Home Viewing",
+        "Registry of Deceased Info",
+        "Tarpaulin & Vigil Candles",
+        "Guest Book"
       ],
-      color: "bg-base-100"
+      color: "bg-base-100",
+      image: "https://images.unsplash.com/photo-1559563362-c667ba5f5480?q=80&w=400&auto=format&fit=crop" // Verified Pink/Peach Rose
     },
     {
-      name: "Mars",
-      price: "₱1,400",
+      name: "RED ROSE PLAN",
+      price: "₱516",
+      contractPrice: "₱30,960",
+      spotCash: "₱27,864",
       features: [
-        "Service Value: 80K",
-        "Natural Death: 10K",
-        "Accidental: 130K"
+        "9 Days Home Viewing",
+        "2 CTC of Death Certificate",
+        "1 Big Tripod Flowers",
+        "Tribute with Flowers",
+        "Registry & Tarpaulin"
       ],
       color: "bg-primary text-white",
-      featured: true
+      featured: true,
+      image: "https://images.unsplash.com/photo-1596073419667-9d77d59f033f?q=80&w=400&auto=format&fit=crop" // Verified Red Rose
     },
     {
-      name: "Jupiter",
-      price: "₱1,700",
+      name: "WHITE ROSE PLAN",
+      price: "₱1,075",
+      contractPrice: "₱64,500",
+      spotCash: "₱58,050",
       features: [
-        "Service Value: 100K",
-        "Natural Death: 10K",
-        "Accidental: 150K"
+        "9 Days Home Viewing",
+        "3 CTC of Death Certificate",
+        "2 Big Tripod Flowers",
+        "Tribute with Flowers",
+        "Registry & Tarpaulin"
       ],
-      color: "bg-base-100"
+      color: "bg-base-100",
+      image: "https://images.unsplash.com/photo-1572454591674-2739f30d8c40?q=80&w=400&auto=format&fit=crop" // Macro White Rose
     }
   ],
+  programs: [
+    {
+      name: "DIGNITY FAMILY PROGRAM",
+      description: "Mortuary Entry Age: 18-64 and 6 months. (Good as New)",
+      details: [
+        "OPTION 1: 100% Coverage (Annual Premium: P720 - P1,700 depending on age)",
+        "OPTION 2: 50% Coverage (Annual Premium: P750 - P850 depending on age)",
+        "Includes Funeral Service & Cash Assistance"
+      ]
+    },
+    {
+      name: "NOBILITY INDIVIDUAL PROGRAM",
+      description: "100% Coverage for ages 18-70 years.",
+      details: [
+        "Annual Premium: P400 - P500",
+        "Funeral Service: P20,000",
+        "Cash Assistance: P10,000 - P40,000"
+      ]
+    }
+  ],
+  benefits: [
+    "No age limit",
+    "No contestability period",
+    "No medical record required",
+    "Transferable",
+    "Assignable",
+    "Upgradable",
+    "Payable in five (5) years",
+    "Spot Cash available"
+  ],
+  offers: [
+    "Funeral Services",
+    "Chapel Facilities",
+    "Documentation and Assessment",
+    "Memorial Plan",
+    "Transport Services",
+    "Casket Packages",
+    "24/7 Customer Service Support"
+  ],
   contact: {
-    address: "R. Colina St., Ibabao-Estancia, Mandaue City, Cebu",
-    email: "fonuscebufc@gmail.com",
-    phone: ["(032) 272-2493", "(032) 272-2433"],
-    website: "https://cjdomingo08.wixsite.com/fonuscebu"
+    address: "Fonus Cebu Bldg. R. Colina St., Ibabao-Estancia, Mandaue City, Cebu",
+    email: "mark3ting.fonuscebu@gmail.com",
+    emails: ["mark3ting.fonuscebu@gmail.com", "laalvarico.fonus@gmail.com"],
+    phone: ["0943-653-0264", "0966-912-5244", "032-427-5863"],
+    website: "https://cjdomingo08.wixsite.com/fonuscebu",
+    facebook: "https://www.facebook.com/profile.php?id=61579850414509"
   },
   board: [
     { name: "Mariolito Del Castillo", affiliation: "MAVENCO COOP" },

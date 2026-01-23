@@ -1,44 +1,127 @@
+"use client";
+
 import { siteData } from '@/data/siteData';
-import { Phone } from 'lucide-react';
+import { Send, User, MessageSquare, Mail } from 'lucide-react';
+import { useState, FormEvent } from 'react';
 
 export default function Contact() {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    subject: '',
+    message: ''
+  });
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    const { name, email, subject, message } = formData;
+    const body = `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`;
+    const mailtoLink = `mailto:${siteData.contact.email}?subject=${encodeURIComponent(subject || `Inquiry from ${name}`)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailtoLink;
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
   return (
-    <section id="location" className="map-section w-full h-[450px] relative bg-gray-200">
-      <div className="container mx-auto px-4 h-full relative">
-        <div className="map-overlay absolute top-1/2 left-4 md:left-10 -translate-y-1/2 bg-white p-10 rounded-2xl shadow-2xl max-w-md z-10">
-          <h3 className="text-2xl font-serif font-bold mb-4 text-primary">Visit Our Office</h3>
-          <p className="mb-6 text-base-content/70 text-sm leading-relaxed">
-            <strong className="text-primary">{siteData.general.name}</strong><br />
-            {siteData.contact.address}<br />
-            Philippines
-          </p>
-          <div className="flex gap-3 items-center text-primary font-bold mb-8">
-            <Phone size={20} className="text-accent" />
-            <span>{siteData.contact.phone.join(' / ')}</span>
+    <section id="location" className="py-20 bg-base-100 relative z-10 scroll-mt-20">
+      <div className="container mx-auto px-4">
+        <div className="flex flex-col lg:flex-row rounded-[30px] overflow-hidden shadow-2xl border border-black/5 bg-white">
+          
+          {/* Map Section - 50% */}
+          <div className="lg:w-1/2 h-[400px] lg:h-auto relative min-h-[400px] bg-gray-200">
+            <iframe 
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3925.127818784742!2d123.9333913!3d10.3316667!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33a9990b7964095b%3A0x1c0f055677949514!2sR.+Colina+St%2C+Mandaue+City%2C+Cebu!5e0!3m2!1sen!2sph!4v1652341234567!5m2!1sen!2sph" 
+              className="absolute inset-0 w-full h-full border-0 grayscale-[20%] contrast-[1.1]"
+              allowFullScreen
+              loading="lazy" 
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Office Location"
+            />
           </div>
-          <a 
-            href="https://www.google.com/maps/dir//R.+Colina,+Mandaue+City,+Cebu" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="btn btn-primary w-full justify-center bg-accent text-primary border-none hover:bg-[#b08d4b] hover:text-white rounded-full py-4 h-auto min-h-0 font-bold uppercase tracking-wider text-xs"
-          >
-            Get Directions
-          </a>
+
+          {/* Form Section - 50% */}
+          <div className="lg:w-1/2 p-8 md:p-12 flex flex-col justify-center bg-gradient-to-br from-primary to-secondary text-white relative overflow-hidden">
+            {/* Subtle background decoration */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
+            
+            <div className="mb-8 relative z-10">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-white mb-4">Send us a Message</h2>
+              <p className="text-white/70 text-sm leading-relaxed">
+                Have questions about our plans? We&apos;re here to help. Send us a message and we&apos;ll get back to you as soon as possible.
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="form-control w-full">
+                  <label className="label py-1"><span className="label-text text-xs font-bold uppercase tracking-wider text-white/60">Your Name</span></label>
+                  <div className="relative group">
+                    <User size={16} className="absolute left-3 top-3.5 text-primary/40 group-focus-within:text-accent transition-colors" />
+                    <input 
+                      type="text" 
+                      name="name" 
+                      value={formData.name}
+                      onChange={handleChange}
+                      placeholder="" 
+                      className="input input-bordered w-full pl-10 focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none rounded-xl bg-white text-primary transition-all shadow-sm" 
+                      required 
+                    />
+                  </div>
+                </div>
+                <div className="form-control w-full">
+                  <label className="label py-1"><span className="label-text text-xs font-bold uppercase tracking-wider text-white/60">Email Address</span></label>
+                  <div className="relative group">
+                    <Mail size={16} className="absolute left-3 top-3.5 text-primary/40 group-focus-within:text-accent transition-colors" />
+                    <input 
+                      type="email" 
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="" 
+                      className="input input-bordered w-full pl-10 focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none rounded-xl bg-white text-primary transition-all shadow-sm" 
+                      required 
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="form-control w-full">
+                <label className="label py-1"><span className="label-text text-xs font-bold uppercase tracking-wider text-white/60">Subject</span></label>
+                <div className="relative group">
+                  <MessageSquare size={16} className="absolute left-3 top-3.5 text-primary/40 group-focus-within:text-accent transition-colors" />
+                  <input 
+                    type="text" 
+                    name="subject"
+                    value={formData.subject}
+                    onChange={handleChange}
+                    placeholder="Inquiry about..." 
+                    className="input input-bordered w-full pl-10 focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none rounded-xl bg-white text-primary transition-all shadow-sm" 
+                    required 
+                  />
+                </div>
+              </div>
+
+              <div className="form-control w-full">
+                <label className="label py-1"><span className="label-text text-xs font-bold uppercase tracking-wider text-white/60">Message</span></label>
+                <textarea 
+                  name="message"
+                  value={formData.message}
+                  onChange={handleChange}
+                  className="textarea textarea-bordered min-h-[120px] focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none rounded-xl bg-white text-primary resize-none transition-all shadow-sm w-full p-4" 
+                  placeholder="How can we help you today?" 
+                  required
+                ></textarea>
+              </div>
+
+              <button type="submit" className="btn bg-accent text-primary border-none hover:bg-white hover:text-primary rounded-xl mt-4 w-full h-auto py-4 font-bold uppercase tracking-widest shadow-lg transition-all transform hover:-translate-y-1 active:scale-[0.98]">
+                <Send size={18} /> Send Message
+              </button>
+            </form>
+          </div>
         </div>
-      </div>
-      
-      {/* Google Map Embed */}
-      <div className="absolute inset-0 z-0">
-        <iframe 
-          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3925.127818784742!2d123.9333913!3d10.3316667!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33a9990b7964095b%3A0x1c0f055677949514!2sR.+Colina+St%2C+Mandaue+City%2C+Cebu!5e0!3m2!1sen!2sph!4v1652341234567!5m2!1sen!2sph" 
-          width="100%"
-          height="100%"
-          style={{ border: 0, filter: 'grayscale(20%) contrast(1.1)' }}
-          allowFullScreen
-          loading="lazy" 
-          referrerPolicy="no-referrer-when-downgrade"
-          title="Office Location"
-        />
       </div>
     </section>
   );

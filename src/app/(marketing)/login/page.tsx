@@ -12,11 +12,28 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    // In a real app, handle redirect or error here
-    alert('Login functionality coming soon!');
+    
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        // Redirect to Admin Dashboard
+        window.location.href = '/admin/dashboard';
+      } else {
+        alert(data.error || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      alert('An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

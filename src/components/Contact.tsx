@@ -1,7 +1,7 @@
 "use client";
 
 import { siteData } from '@/data/siteData';
-import { Send, User, MessageSquare, Mail } from 'lucide-react';
+import { Send, User, MessageSquare, Mail, Loader2, CheckCircle } from 'lucide-react';
 import { useState, FormEvent } from 'react';
 
 export default function Contact() {
@@ -11,13 +11,30 @@ export default function Contact() {
     subject: '',
     message: ''
   });
+  const [status, setStatus] = useState<'IDLE' | 'LOADING' | 'SUCCESS' | 'ERROR'>('IDLE');
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const { name, email, subject, message } = formData;
-    const body = `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`;
-    const mailtoLink = `mailto:${siteData.contact.email}?subject=${encodeURIComponent(subject || `Inquiry from ${name}`)}&body=${encodeURIComponent(body)}`;
-    window.location.href = mailtoLink;
+    setStatus('LOADING');
+    
+    try {
+      const res = await fetch('/api/inquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      if (res.ok) {
+        setStatus('SUCCESS');
+        setFormData({ name: '', email: '', subject: '', message: '' });
+        setTimeout(() => setStatus('IDLE'), 3000);
+      } else {
+        setStatus('ERROR');
+      }
+    } catch (error) {
+      console.error(error);
+      setStatus('ERROR');
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -116,9 +133,22 @@ export default function Contact() {
                 ></textarea>
               </div>
 
-              <button type="submit" className="btn bg-accent text-primary border-none hover:bg-white hover:text-primary rounded-xl mt-4 w-full h-auto py-4 font-bold uppercase tracking-widest shadow-lg transition-all transform hover:-translate-y-1 active:scale-[0.98]">
-                <Send size={18} /> Send Message
+              <button 
+                type="submit" 
+                disabled={status === 'LOADING' || status === 'SUCCESS'}
+                className={`btn border-none rounded-xl mt-4 w-full h-auto py-4 font-bold uppercase tracking-widest shadow-lg transition-all transform hover:-translate-y-1 active:scale-[0.98] ${
+                  status === 'SUCCESS' ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-accent text-primary hover:bg-white hover:text-primary'
+                }`}
+              >
+                {status === 'LOADING' ? (
+                  <><Loader2 className="animate-spin" size={18} /> Sending...</>
+                ) : status === 'SUCCESS' ? (
+                  <><CheckCircle size={18} /> Message Sent!</>
+                ) : (
+                  <><Send size={18} /> Send Message</>
+                )}
               </button>
+              {status === 'ERROR' && <p className="text-red-200 text-sm mt-2 text-center">Something went wrong. Please try again.</p>}
             </form>
           </div>
         </div>

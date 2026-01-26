@@ -50,11 +50,11 @@ export default function Navbar() {
         </div>
         
         <nav className={`
-          fixed md:relative top-0 md:top-0 left-0 w-full md:w-auto h-screen md:h-auto
-          bg-primary md:bg-transparent flex flex-col md:flex-row 
-          items-center justify-center md:justify-end gap-8 md:gap-8 p-8 md:p-0
-          transition-all duration-500 ease-in-out z-[999]
-          ${isOpen ? 'clip-path-circle-open' : 'clip-path-circle-closed md:clip-path-none'}
+          fixed inset-0 w-screen h-screen bg-primary z-[999]
+          flex flex-col justify-center items-center gap-8
+          transition-all duration-300 ease-in-out
+          md:relative md:inset-auto md:w-auto md:h-auto md:bg-transparent md:flex-row md:gap-8 md:p-0
+          ${isOpen ? 'opacity-100 visible' : 'opacity-0 invisible md:opacity-100 md:visible'}
         `}>
           <ul className="flex flex-col md:flex-row items-center gap-8 text-xl md:text-sm font-medium text-white/90 uppercase tracking-widest">
             <li><Link href="#home" onClick={() => setIsState(false)} className="hover:text-accent relative after:content-[''] after:absolute after:w-0 after:h-0.5 after:bottom-[-4px] after:left-0 after:bg-accent after:transition-all hover:after:w-full">Home</Link></li>
@@ -66,19 +66,6 @@ export default function Navbar() {
           </ul>
         </nav>
       </div>
-      <style jsx>{`
-        .clip-path-circle-closed {
-          clip-path: circle(0% at 100% 0);
-        }
-        .clip-path-circle-open {
-          clip-path: circle(150% at 100% 0);
-        }
-        @media (min-width: 768px) {
-          .md\:clip-path-none {
-            clip-path: none;
-          }
-        }
-      `}</style>
     </header>
   );
 }

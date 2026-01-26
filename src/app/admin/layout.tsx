@@ -13,6 +13,7 @@ import {
   Menu
 } from 'lucide-react';
 import { useState } from 'react';
+import { logout } from '@/app/actions/auth';
 
 export default function AdminLayout({
   children,
@@ -113,13 +114,13 @@ export default function AdminLayout({
 
         {/* Sidebar Footer */}
         <div className="p-4 border-t border-white/10">
-          <Link 
-            href="/" 
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-red-300 hover:bg-red-500/20 hover:text-red-100 transition-colors font-medium text-sm"
+          <button 
+            onClick={() => logout()}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-red-300 hover:bg-red-500/20 hover:text-red-100 transition-colors font-medium text-sm w-full"
           >
             <LogOut size={20} />
             Log Out
-          </Link>
+          </button>
         </div>
       </aside>
 

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "1",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "subject": "Plan Inquiry",
+    "message": "I am interested in the Red Rose Plan. Can you send more details?",
+    "createdAt": "2026-01-25T05:41:18.330Z",
+    "status": "READ"
+  },
+  {
+    "id": "2",
+    "name": "Jane Smith",
+    "email": "jane@example.com",
+    "subject": "Service Question",
+    "message": "Do you offer transport services outside Cebu City?",
+    "createdAt": "2026-01-24T05:41:18.330Z",
+    "status": "READ"
+  }
+]

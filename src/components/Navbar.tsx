@@ -7,14 +7,15 @@ import { Menu, X } from 'lucide-react';
 import { siteData } from '@/data/siteData';
 
 export default function Navbar() {
-  const [isOpen, setIsState] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
-  const toggleMenu = () => setIsState(!isOpen);
+  const toggleMenu = () => setIsOpen(!isOpen);
+  const closeMenu = () => setIsOpen(false);
 
   return (
     <header className="site-header fixed top-0 left-0 w-full h-20 flex items-center z-[1000] bg-primary shadow-lg">
       <div className="container mx-auto px-4 flex justify-between items-center w-full">
-        <Link href="/" className="logo flex items-center gap-3 no-underline shrink-0">
+        <Link href="/" className="logo flex items-center gap-3 no-underline shrink-0" onClick={closeMenu}>
           <div className="bg-white p-0.5 rounded-full relative h-11 w-11 overflow-hidden border border-white/20">
             <Image 
               src="/fonus.webp" 
@@ -45,40 +46,31 @@ export default function Navbar() {
           </div>
         </Link>
         
-        <div className="hamburger md:hidden text-3xl cursor-pointer text-white" onClick={toggleMenu}>
+        <button 
+          className="hamburger md:hidden text-3xl cursor-pointer text-white focus:outline-none" 
+          onClick={toggleMenu}
+          aria-label="Toggle menu"
+        >
           {isOpen ? <X /> : <Menu />}
-        </div>
+        </button>
         
         <nav className={`
           fixed md:relative top-20 md:top-0 left-0 w-full md:w-auto 
           bg-primary md:bg-transparent flex flex-col md:flex-row 
           items-center gap-8 md:gap-8 p-8 md:p-0
-          transition-all duration-500 ease-in-out z-[999]
-          ${isOpen ? 'clip-path-circle-open' : 'clip-path-circle-closed md:clip-path-none'}
+          transition-all duration-300 ease-in-out z-[999]
+          ${isOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-5 md:opacity-100 md:visible md:translate-y-0'}
         `}>
           <ul className="flex flex-col md:flex-row items-center gap-8 text-sm font-medium text-white/90 uppercase tracking-widest">
-            <li><Link href="#home" onClick={() => setIsState(false)} className="hover:text-accent relative after:content-[''] after:absolute after:w-0 after:h-0.5 after:bottom-[-4px] after:left-0 after:bg-accent after:transition-all hover:after:w-full">Home</Link></li>
-            <li><Link href="#about" onClick={() => setIsState(false)} className="hover:text-accent relative after:content-[''] after:absolute after:w-0 after:h-0.5 after:bottom-[-4px] after:left-0 after:bg-accent after:transition-all hover:after:w-full">About</Link></li>
-            <li><Link href="#values" onClick={() => setIsState(false)} className="hover:text-accent relative after:content-[''] after:absolute after:w-0 after:h-0.5 after:bottom-[-4px] after:left-0 after:bg-accent after:transition-all hover:after:w-full">Values</Link></li>
-            <li><Link href="#packages" onClick={() => setIsState(false)} className="hover:text-accent relative after:content-[''] after:absolute after:w-0 after:h-0.5 after:bottom-[-4px] after:left-0 after:bg-accent after:transition-all hover:after:w-full">Packages</Link></li>
-            <li><Link href="#location" onClick={() => setIsState(false)} className="hover:text-accent relative after:content-[''] after:absolute after:w-0 after:h-0.5 after:bottom-[-4px] after:left-0 after:bg-accent after:transition-all hover:after:w-full">Location</Link></li>
-            <li><Link href="#contact" onClick={() => setIsState(false)} className="btn bg-white text-primary border-none hover:bg-accent hover:text-white px-8 rounded-full normal-case">Contact Us</Link></li>
+            <li><Link href="#home" onClick={closeMenu} className="hover:text-accent relative after:content-[''] after:absolute after:w-0 after:h-0.5 after:bottom-[-4px] after:left-0 after:bg-accent after:transition-all hover:after:w-full">Home</Link></li>
+            <li><Link href="#about" onClick={closeMenu} className="hover:text-accent relative after:content-[''] after:absolute after:w-0 after:h-0.5 after:bottom-[-4px] after:left-0 after:bg-accent after:transition-all hover:after:w-full">About</Link></li>
+            <li><Link href="#values" onClick={closeMenu} className="hover:text-accent relative after:content-[''] after:absolute after:w-0 after:h-0.5 after:bottom-[-4px] after:left-0 after:bg-accent after:transition-all hover:after:w-full">Values</Link></li>
+            <li><Link href="#packages" onClick={closeMenu} className="hover:text-accent relative after:content-[''] after:absolute after:w-0 after:h-0.5 after:bottom-[-4px] after:left-0 after:bg-accent after:transition-all hover:after:w-full">Packages</Link></li>
+            <li><Link href="#location" onClick={closeMenu} className="hover:text-accent relative after:content-[''] after:absolute after:w-0 after:h-0.5 after:bottom-[-4px] after:left-0 after:bg-accent after:transition-all hover:after:w-full">Location</Link></li>
+            <li><Link href="#contact" onClick={closeMenu} className="btn bg-white text-primary border-none hover:bg-accent hover:text-white px-8 rounded-full normal-case">Contact Us</Link></li>
           </ul>
         </nav>
       </div>
-      <style jsx>{`
-        .clip-path-circle-closed {
-          clip-path: circle(0% at 100% 0);
-        }
-        .clip-path-circle-open {
-          clip-path: circle(150% at 100% 0);
-        }
-        @media (min-width: 768px) {
-          .md\:clip-path-none {
-            clip-path: none;
-          }
-        }
-      `}</style>
     </header>
   );
 }

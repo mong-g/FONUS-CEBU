@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { logout } from '@/app/actions/auth';
+import TransitionScreen from '@/components/TransitionScreen';
 
 export default function AdminLayout({
   children,
@@ -33,6 +34,7 @@ export default function AdminLayout({
 
   return (
     <div className="min-h-screen bg-base-200 flex">
+      <TransitionScreen />
       {/* Mobile Menu Button */}
       <button 
         className="lg:hidden fixed top-4 right-4 z-50 btn btn-circle btn-primary shadow-lg"

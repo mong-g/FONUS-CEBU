@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 import Link from 'next/link';
 import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import { login } from './actions';
+import TransitionScreen from '@/components/TransitionScreen';
 
 // Initial state for the form
 const initialState = {
@@ -15,6 +16,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-base-200 px-4">
+      <TransitionScreen />
       <div className="w-full max-w-md animate-fade-in">
         <div className="bg-white rounded-[var(--radius-box)] shadow-xl overflow-hidden">
           {/* Header */}

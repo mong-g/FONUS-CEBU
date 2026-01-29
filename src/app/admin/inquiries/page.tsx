@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Inquiry } from '@/backend/types';
 import { Mail, Search, X, Send } from 'lucide-react';
+import { inquiryService } from '@/backend/services/inquiryService'; // Import service directly
 import Link from 'next/link';
 
 export default function InquiriesPage() {
@@ -22,11 +23,10 @@ export default function InquiriesPage() {
 
   const fetchInquiries = async () => {
     try {
-      const res = await fetch('/api/inquiries');
-      if (res.ok) {
-        const data = await res.json();
-        setInquiries(data);
-      }
+      // Use the service directly on the client side
+      // This uses the browser's active Firebase session
+      const data = await inquiryService.getAll();
+      setInquiries(data);
     } catch (error) {
       console.error('Failed to fetch inquiries:', error);
     } finally {
@@ -58,13 +58,10 @@ export default function InquiriesPage() {
     e.preventDefault();
     e.stopPropagation();
     try {
-      const res = await fetch(`/api/inquiries/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
-      });
+      // Use service directly
+      const success = await inquiryService.update(id, { status: newStatus });
 
-      if (res.ok) {
+      if (success) {
         setInquiries(prev => prev.map(i => 
           i.id === id ? { ...i, status: newStatus } : i
         ));
@@ -85,6 +82,7 @@ export default function InquiriesPage() {
     setIsSending(true);
     
     try {
+      // Sending email still needs the server API route (Firebase Client SDK can't send emails directly easily)
       const res = await fetch('/api/email/reply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

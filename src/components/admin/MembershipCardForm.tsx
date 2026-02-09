@@ -254,21 +254,57 @@ export default function MembershipCardForm({
 
         const skipKeywords = ['billing', 'rate', 'total', 'grand total', 'count'];
 
+        const headerRow = jsonData[headerRowIndex] as any[];
+        const findCol = (keywords: string[]) => 
+          headerRow.findIndex(cell => 
+            keywords.some(kw => String(cell || '').toLowerCase().includes(kw))
+          );
+
+        // Map column indices based on headers with expanded keyword matching
+        const lNameIdx = findCol(['family', 'surname', 'last name', 'last_name']);
+        const fNameIdx = findCol(['first name', 'given name', 'first_name']);
+        const mNameIdx = findCol(['middle name', 'middle initial', 'm.i.', 'middle_name']);
+        const fullNameIdx = findCol(['full name', 'fullname', 'member name', 'name of member', 'complete name']);
+        const gIdx = findCol(['gender', 'sex']);
+        const bIdx = findCol(['birthdate', 'birth date', 'b-date', 'date of birth', 'dob', 'bday']);
+        const addrIdx = findCol(['address', 'present address', 'residence', 'home address', 'location']);
+
         const recordsToImport = jsonData.slice(headerRowIndex + 1).filter(row => {
-          const familyName = String(row[0] || '').toLowerCase().trim();
-          const firstName = String(row[1] || '').toLowerCase().trim();
-          return familyName && firstName && !skipKeywords.includes(familyName);
+          // Robust check: ensure at least one name column has content and is not a skip keyword
+          const lName = lNameIdx !== -1 ? String(row[lNameIdx] || '').toLowerCase().trim() : '';
+          const fName = fNameIdx !== -1 ? String(row[fNameIdx] || '').toLowerCase().trim() : '';
+          const fullName = fullNameIdx !== -1 ? String(row[fullNameIdx] || '').toLowerCase().trim() : '';
+          
+          const hasName = lName || fName || fullName;
+          const isSkip = (lName && skipKeywords.includes(lName)) || (fName && skipKeywords.includes(fName)) || (fullName && skipKeywords.includes(fullName));
+          
+          return hasName && !isSkip;
         });
 
+        if (fullNameIdx === -1 && fNameIdx === -1 && lNameIdx === -1) {
+          console.warn(`Sheet "${sheetName}" missing name columns. Skipping.`);
+          continue;
+        }
+
         const sheetMembers = recordsToImport.map(row => {
-          const getVal = (idx: number) => row[idx] ? String(row[idx]).trim() : '';
-          const firstName = getVal(1);
-          const middleName = getVal(2);
-          const familyName = getVal(0);
-          const fullName = [firstName, middleName, familyName].filter(part => part.length > 0).join(' ').toUpperCase();
-          let birthdate = getVal(5);
-          if (typeof row[5] === 'number') {
-             const date = new Date((row[5] - (25567 + 2)) * 86400 * 1000);
+          const getVal = (idx: number) => (idx !== -1 && row[idx]) ? String(row[idx]).trim() : '';
+          
+          let fullName = "";
+          if (fullNameIdx !== -1) {
+            fullName = getVal(fullNameIdx);
+          } else {
+            const firstName = getVal(fNameIdx);
+            const middleName = getVal(mNameIdx);
+            const familyName = getVal(lNameIdx);
+            fullName = [firstName, middleName, familyName]
+              .filter(part => part && part.length > 0)
+              .join(' ');
+          }
+          fullName = fullName.toUpperCase();
+
+          let birthdate = getVal(bIdx);
+          if (bIdx !== -1 && typeof row[bIdx] === 'number') {
+             const date = new Date((row[bIdx] - (25567 + 2)) * 86400 * 1000);
              birthdate = date.toLocaleDateString('en-US');
           }
 
@@ -282,9 +318,9 @@ export default function MembershipCardForm({
           return {
             ...DEFAULT_MEMBER,
             name: fullName,
-            presentAddress: getVal(6).toUpperCase(),
+            presentAddress: getVal(addrIdx).toUpperCase(),
             birthdate: birthdate,
-            gender: getVal(3).toUpperCase(),
+            gender: getVal(gIdx).toUpperCase(),
             coopName: coopName,
             records: records,
           };

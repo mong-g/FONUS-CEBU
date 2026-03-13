@@ -62,6 +62,7 @@ export default function MembershipCardForm({
   const [localIsSubmitting, setLocalIsSubmitting] = useState(false);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [printMembers, setPrintMembers] = useState<Membership[]>([]);
+  const [importedFilename, setImportedFilename] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Pagination / Batching
@@ -149,6 +150,10 @@ export default function MembershipCardForm({
   const handleExcelImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Capture the original filename (remove extension)
+    const baseName = file.name.replace(/\.[^/.]+$/, "");
+    setImportedFilename(baseName);
 
     setLocalIsSubmitting(true);
     try {
@@ -312,7 +317,7 @@ export default function MembershipCardForm({
   const totalCount = membersList.flat().filter(m => m.name || m.presentAddress).length;
 
   if (showPrintPreview) {
-    return <MembershipPrint memberships={printMembers} onClose={() => setShowPrintPreview(false)} />;
+    return <MembershipPrint memberships={printMembers} onClose={() => setShowPrintPreview(false)} baseFilename={importedFilename} />;
   }
 
   return (
@@ -325,13 +330,13 @@ export default function MembershipCardForm({
             width: 1000px;
             height: 630px;
             position: relative;
-            background-color: #ffffff; 
+            background-color: #faf9f6; 
             border-radius: 30px;
             overflow: hidden;
             padding: 25px 35px;
             color: #000;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.12'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
             border: 1px solid #ddd;
         }
 
@@ -345,7 +350,7 @@ export default function MembershipCardForm({
         input { background: transparent; border: none; outline: none; width: 100%; font-family: inherit; font-size: inherit; font-weight: inherit; color: inherit; }
         input:focus { background: rgba(255, 255, 0, 0.1); }
 
-        .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 650px; height: 650px; opacity: 0.22; z-index: 0; pointer-events: none; display: flex; justify-content: center; align-items: center; }
+        .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 650px; height: 650px; opacity: 0.3; z-index: 0; pointer-events: none; display: flex; justify-content: center; align-items: center; }
         .watermark img { width: 100%; height: 100%; object-fit: contain; }
 
         .content { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; }
@@ -362,8 +367,7 @@ export default function MembershipCardForm({
         .card-name { text-align: center; font-size: 34px; font-weight: 900; text-transform: uppercase; margin-bottom: 10px; }
 
         .form-container { border: 3px solid #000; display: flex; margin-bottom: 5px; }
-        .photo-box { width: 200px; border-right: 3px solid #000; position: relative; background: transparent; cursor: pointer; }
-        .photo-preview { width: 100%; height: 100%; object-fit: cover; }
+        .photo-box { width: 210px; border-right: 3px solid #000; position: relative; background: transparent; cursor: pointer; }        .photo-preview { width: 100%; height: 100%; object-fit: cover; }
         .photo-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #666; font-size: 14px; pointer-events: none; }
 
         .fields-box { flex: 1; display: flex; flex-direction: column; }

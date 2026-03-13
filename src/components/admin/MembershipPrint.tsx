@@ -9,6 +9,7 @@ import { Loader2, Download, Printer, X, ZoomIn, ZoomOut } from "lucide-react";
 interface MembershipPrintProps {
   memberships: Membership[];
   onClose: () => void;
+  baseFilename?: string;
 }
 
 /**
@@ -23,7 +24,7 @@ const PAGE_HEIGHT_MM = 279.4;
 const CARD_WIDTH_MM = 100;
 const CARD_HEIGHT_MM = 80;
 
-export default function MembershipPrint({ memberships, onClose }: MembershipPrintProps) {
+export default function MembershipPrint({ memberships, onClose, baseFilename }: MembershipPrintProps) {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [zoom, setZoom] = useState(0.5); 
   const printRef = useRef<HTMLDivElement>(null);
@@ -69,32 +70,37 @@ export default function MembershipPrint({ memberships, onClose }: MembershipPrin
         captureContainer.appendChild(clonedPage);
 
         // Wait a tiny bit for images/styles to be ready in the clone
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 200));
 
         const canvas = await html2canvas(clonedPage, {
-          scale: 3, // Higher scale for better quality
+          scale: 2, // 2 is usually plenty for high-quality print while keeping file size reasonable
           useCORS: true,
           logging: false,
-          backgroundColor: "#ffffff",
+          backgroundColor: "#faf9f6",
           width: clonedPage.offsetWidth,
           height: clonedPage.offsetHeight,
-          windowWidth: 1200, // Fixed window width to ensure consistent layout
           onclone: (clonedDoc) => {
             const el = clonedDoc.querySelector(".print-page") as HTMLElement;
-            if (el) el.style.transform = "none";
+            if (el) {
+              el.style.transform = "none";
+              el.style.display = "flex";
+            }
           }
         });
 
-        const imgData = canvas.toDataURL("image/jpeg", 0.98);
+        const imgData = canvas.toDataURL("image/jpeg", 1.0);
         if (i > 0) pdf.addPage();
-        pdf.addImage(imgData, "JPEG", 0, 0, PAGE_WIDTH_MM, PAGE_HEIGHT_MM, undefined, 'FAST');
+        pdf.addImage(imgData, "JPEG", 0, 0, PAGE_WIDTH_MM, PAGE_HEIGHT_MM, undefined, 'SLOW');
         
         // Clean up clone
         captureContainer.removeChild(clonedPage);
       }
 
       document.body.removeChild(captureContainer);
-      pdf.save(`Membership_Batch_${new Date().getTime()}.pdf`);
+      const finalName = baseFilename 
+        ? `${baseFilename}_Batch_${new Date().getTime()}.pdf` 
+        : `Membership_Batch_${new Date().getTime()}.pdf`;
+      pdf.save(finalName);
     } catch (error) {
       console.error("PDF Error:", error);
       alert("Error generating PDF. Please use the 'Print Now' button instead.");
@@ -271,7 +277,7 @@ export default function MembershipPrint({ memberships, onClose }: MembershipPrin
         .orig-card {
           width: ${CARD_WIDTH_MM}mm;
           height: ${CARD_HEIGHT_MM}mm;
-          background-color: #ffffff;
+          background-color: #faf9f6;
           position: relative;
           color: #000;
           padding: 2.5mm 4mm;
@@ -290,7 +296,7 @@ export default function MembershipPrint({ memberships, onClose }: MembershipPrin
           display: flex;
           justify-content: center;
           align-items: center;
-          opacity: 0.12;
+          opacity: 0.22;
           z-index: 0;
           pointer-events: none;
         }
@@ -313,13 +319,13 @@ export default function MembershipPrint({ memberships, onClose }: MembershipPrin
         .orig-title-main { font-size: 5mm; font-weight: 900; color: #520000; line-height: 1; font-family: 'Times New Roman', serif; }
         .orig-title-sub { font-size: 1.8mm; font-weight: bold; color: #000; margin-top: 0.4mm; line-height: 1; }
 
-        .orig-address { font-size: 1.2mm; text-align: center; line-height: 1.2; margin-bottom: 0.8mm; font-weight: bold; }
-        .orig-slogan { font-size: 2.8mm; text-align: center; margin: 0.4mm 0; font-family: 'Brush Script MT', cursive; color: #3d1e00; line-height: 1.2; }
-        .orig-cert-title { font-size: 3.5mm; font-weight: 900; text-align: center; margin-bottom: 1.2mm; font-family: 'Times New Roman', serif; color: #3d1e00; line-height: 1.2; }
+        .orig-address { font-size: 1.2mm; text-align: center; line-height: 1.4; margin-bottom: 1mm; font-weight: bold; }
+        .orig-slogan { font-size: 2.8mm; text-align: center; margin: 0.8mm 0; font-family: 'Brush Script MT', cursive; color: #3d1e00; line-height: 1.2; }
+        .orig-cert-title { font-size: 3.5mm; font-weight: 900; text-align: center; margin-bottom: 2.5mm; font-family: 'Times New Roman', serif; color: #3d1e00; line-height: 1.2; }
 
         /* FORM BOX */
-        .orig-form { border: 0.4mm solid #000; display: flex; margin-bottom: 1.2mm; height: 28mm; }
-        .orig-photo { width: 20mm; border-right: 0.4mm solid #000; background: #f0f0f0; }
+        .orig-form { border: 0.4mm solid #000; display: flex; margin-bottom: 1.2mm; height: 28mm; background: transparent; }
+        .orig-photo { width: 28mm; border-right: 0.4mm solid #000; background: #f0f0f0; }
         .orig-fields { flex: 1; display: flex; flex-direction: column; }
         .orig-field { display: flex; align-items: center; padding: 0 2mm; border-bottom: 0.2mm solid #000; height: 7mm; font-size: 2.5mm; }
         .orig-field:last-child { border-bottom: none; }
@@ -353,10 +359,23 @@ export default function MembershipPrint({ memberships, onClose }: MembershipPrin
         .orig-disclaimer { font-size: 1.6mm; font-style: italic; text-align: justify; line-height: 1.2; margin-bottom: 2mm; font-weight: bold; color: #520000; font-family: 'Times New Roman', serif; }
         
         .orig-back-footer { display: flex; justify-content: space-between; align-items: flex-end; flex: 1; }
-        .orig-auth-sig { width: 42%; display: flex; flex-direction: column; align-items: center; }
-        .orig-sign-img { height: 9mm; margin-bottom: -1mm; }
-        .orig-sign-name { font-size: 2.8mm; font-weight: 900; border-bottom: 0.3mm solid #000; width: 100%; text-align: center; }
-        .orig-sign-label { font-size: 2mm; font-weight: bold; margin-top: 0.5mm; }
+        .orig-auth-sig { width: 42%; display: flex; flex-direction: column; align-items: center; position: relative; }
+        .orig-sign-img { height: 10mm; margin-bottom: -1.5mm; z-index: 2; transform: translateY(1mm); }
+        .orig-sign-name { 
+          font-size: 2.8mm; 
+          font-weight: 900; 
+          width: 100%; 
+          text-align: center; 
+          line-height: 1.2;
+          z-index: 1;
+        }
+        .orig-sign-underline {
+          width: 100%;
+          border-top: 0.4mm solid #000;
+          margin-top: 1.5mm;
+          margin-bottom: 0.8mm;
+        }
+        .orig-sign-label { font-size: 2mm; font-weight: bold; }
 
         .orig-emergency-area { width: 55%; display: flex; flex-direction: column; gap: 1.5mm; }
         .orig-emergency-box { border: 0.4mm solid #000; padding: 1.5mm; height: 11mm; }
@@ -458,6 +477,7 @@ function OriginalDesignCard({ member, isFront }: { member: Membership, isFront: 
             <div className="orig-auth-sig">
               <img src="/sign.png" className="orig-sign-img" alt="" />
               <div className="orig-sign-name">JOCELYN Q. CARDENAS</div>
+              <div className="orig-sign-underline"></div>
               <div className="orig-sign-label">Authorized Signature</div>
             </div>
 

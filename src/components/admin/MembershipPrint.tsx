@@ -45,12 +45,14 @@ export default function MembershipPrint({ memberships, onClose }: MembershipPrin
       captureContainer.style.left = "-9999px";
       captureContainer.style.top = "0";
       captureContainer.style.width = `${PAGE_WIDTH_MM}mm`;
+      captureContainer.style.background = "white";
       document.body.appendChild(captureContainer);
 
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
         format: [PAGE_WIDTH_MM, PAGE_HEIGHT_MM],
+        compress: true
       });
 
       // Select all print pages from the actual ref
@@ -66,18 +68,26 @@ export default function MembershipPrint({ memberships, onClose }: MembershipPrin
         clonedPage.style.border = "none";
         captureContainer.appendChild(clonedPage);
 
+        // Wait a tiny bit for images/styles to be ready in the clone
+        await new Promise(resolve => setTimeout(resolve, 100));
+
         const canvas = await html2canvas(clonedPage, {
-          scale: 2, // 2x scale for clear printing
+          scale: 3, // Higher scale for better quality
           useCORS: true,
           logging: false,
           backgroundColor: "#ffffff",
-          width: PAGE_WIDTH_MM * 3.7795, // mm to px conversion approx
-          height: PAGE_HEIGHT_MM * 3.7795
+          width: clonedPage.offsetWidth,
+          height: clonedPage.offsetHeight,
+          windowWidth: 1200, // Fixed window width to ensure consistent layout
+          onclone: (clonedDoc) => {
+            const el = clonedDoc.querySelector(".print-page") as HTMLElement;
+            if (el) el.style.transform = "none";
+          }
         });
 
-        const imgData = canvas.toDataURL("image/jpeg", 0.95);
+        const imgData = canvas.toDataURL("image/jpeg", 0.98);
         if (i > 0) pdf.addPage();
-        pdf.addImage(imgData, "JPEG", 0, 0, PAGE_WIDTH_MM, PAGE_HEIGHT_MM);
+        pdf.addImage(imgData, "JPEG", 0, 0, PAGE_WIDTH_MM, PAGE_HEIGHT_MM, undefined, 'FAST');
         
         // Clean up clone
         captureContainer.removeChild(clonedPage);
@@ -164,6 +174,8 @@ export default function MembershipPrint({ memberships, onClose }: MembershipPrin
           display: flex;
           flex-direction: column;
           color: white;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
         }
 
         .toolbar {
@@ -218,6 +230,7 @@ export default function MembershipPrint({ memberships, onClose }: MembershipPrin
           flex-shrink: 0;
           position: relative;
           border: 1px solid #000; /* THIN BORDER TO DEFINE PAPER EDGE */
+          overflow: hidden;
         }
 
         /* 2x2 GRID */
@@ -237,15 +250,17 @@ export default function MembershipPrint({ memberships, onClose }: MembershipPrin
 
         @media print {
           .no-print { display: none !important; }
-          .print-preview-root { position: static; background: white; }
-          .workspace { padding: 0; overflow: visible; background: white; }
-          .canvas { transform: none !important; gap: 0; }
-          .batch-container { gap: 0; }
+          .print-preview-root { position: static; background: white; height: auto; display: block; }
+          .workspace { padding: 0; overflow: visible; background: white; display: block; }
+          .canvas { transform: none !important; gap: 0; display: block; }
+          .batch-container { gap: 0; display: block; }
           .print-page { 
             box-shadow: none !important; 
             margin: 0 !important; 
             border: none !important;
             page-break-after: always !important; 
+            width: 8.5in !important;
+            height: 11in !important;
           }
           @page { size: 8.5in 11in; margin: 0; }
         }
@@ -265,6 +280,8 @@ export default function MembershipPrint({ memberships, onClose }: MembershipPrin
           flex-direction: column;
           box-sizing: border-box;
           overflow: hidden;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
         }
 
         .orig-watermark {
@@ -293,12 +310,12 @@ export default function MembershipPrint({ memberships, onClose }: MembershipPrin
         }
         .orig-logo { width: 14mm; height: 11mm; object-fit: contain; }
         .orig-title-group { text-align: center; }
-        .orig-title-main { font-size: 5mm; font-weight: 900; color: #520000; line-height: 0.8; font-family: 'Times New Roman', serif; }
-        .orig-title-sub { font-size: 1.8mm; font-weight: bold; color: #000; margin-top: 0.4mm; }
+        .orig-title-main { font-size: 5mm; font-weight: 900; color: #520000; line-height: 1; font-family: 'Times New Roman', serif; }
+        .orig-title-sub { font-size: 1.8mm; font-weight: bold; color: #000; margin-top: 0.4mm; line-height: 1; }
 
-        .orig-address { font-size: 1.2mm; text-align: center; line-height: 1.1; margin-bottom: 0.8mm; font-weight: bold; }
-        .orig-slogan { font-size: 2.8mm; text-align: center; margin: 0.4mm 0; font-family: 'Brush Script MT', cursive; color: #3d1e00; }
-        .orig-cert-title { font-size: 3.5mm; font-weight: 900; text-align: center; margin-bottom: 1.2mm; font-family: 'Times New Roman', serif; color: #3d1e00; }
+        .orig-address { font-size: 1.2mm; text-align: center; line-height: 1.2; margin-bottom: 0.8mm; font-weight: bold; }
+        .orig-slogan { font-size: 2.8mm; text-align: center; margin: 0.4mm 0; font-family: 'Brush Script MT', cursive; color: #3d1e00; line-height: 1.2; }
+        .orig-cert-title { font-size: 3.5mm; font-weight: 900; text-align: center; margin-bottom: 1.2mm; font-family: 'Times New Roman', serif; color: #3d1e00; line-height: 1.2; }
 
         /* FORM BOX */
         .orig-form { border: 0.4mm solid #000; display: flex; margin-bottom: 1.2mm; height: 28mm; }
@@ -307,8 +324,8 @@ export default function MembershipPrint({ memberships, onClose }: MembershipPrin
         .orig-field { display: flex; align-items: center; padding: 0 2mm; border-bottom: 0.2mm solid #000; height: 7mm; font-size: 2.5mm; }
         .orig-field:last-child { border-bottom: none; }
         .orig-field.long { height: 10mm; align-items: flex-start; flex-direction: column; padding-top: 1mm; }
-        .orig-label { font-weight: bold; margin-right: 2mm; white-space: nowrap; font-size: 2.2mm; line-height: 1; }
-        .orig-value { font-weight: 900; text-transform: uppercase; font-size: 2.6mm; flex: 1; overflow: hidden; line-height: 1; display: flex; align-items: center; }
+        .orig-label { font-weight: bold; margin-right: 2mm; white-space: nowrap; font-size: 2.2mm; line-height: 1.2; }
+        .orig-value { font-weight: 900; text-transform: uppercase; font-size: 2.6mm; flex: 1; line-height: 1.2; display: flex; align-items: center; }
 
         .orig-sig-line { border: 0.4mm solid #000; width: 48%; height: 6mm; padding: 0 2mm; font-size: 2mm; font-weight: bold; margin-bottom: 1.5mm; display: flex; align-items: center; }
 
@@ -324,16 +341,16 @@ export default function MembershipPrint({ memberships, onClose }: MembershipPrin
           padding: 0 2.5mm; 
           font-weight: 900; 
         }
-        .orig-footer-label { font-size: 2.2mm; white-space: nowrap; margin-right: 2mm; line-height: 1; }
-        .orig-footer-val { font-size: 2.6mm; text-transform: uppercase; flex: 1; overflow: hidden; line-height: 1; display: flex; align-items: center; }
+        .orig-footer-label { font-size: 2.2mm; white-space: nowrap; margin-right: 2mm; line-height: 1.2; }
+        .orig-footer-val { font-size: 2.6mm; text-transform: uppercase; flex: 1; line-height: 1.2; display: flex; align-items: center; }
 
         /* BACK SIDE */
         .orig-table { width: 100%; border: 0.5mm solid #000; border-collapse: collapse; margin-bottom: 1.5mm; }
-        .orig-table th, .orig-table td { border: 0.2mm solid #000; text-align: center; height: 4mm; padding: 0.2mm; font-size: 1.6mm; }
+        .orig-table th, .orig-table td { border: 0.2mm solid #000; text-align: center; height: 4mm; padding: 0.2mm; font-size: 1.6mm; line-height: 1.2; }
         .orig-table th { background: #eaddb6; font-weight: bold; }
         .orig-table td { font-weight: 900; }
 
-        .orig-disclaimer { font-size: 1.6mm; font-style: italic; text-align: justify; line-height: 1.1; margin-bottom: 2mm; font-weight: bold; color: #520000; font-family: 'Times New Roman', serif; }
+        .orig-disclaimer { font-size: 1.6mm; font-style: italic; text-align: justify; line-height: 1.2; margin-bottom: 2mm; font-weight: bold; color: #520000; font-family: 'Times New Roman', serif; }
         
         .orig-back-footer { display: flex; justify-content: space-between; align-items: flex-end; flex: 1; }
         .orig-auth-sig { width: 42%; display: flex; flex-direction: column; align-items: center; }
@@ -383,7 +400,7 @@ function OriginalDesignCard({ member, isFront }: { member: Membership, isFront: 
               <div className="orig-field"><span className="orig-label">Name:</span><span className="orig-value">{member.name}</span></div>
               <div className="orig-field long">
                 <span className="orig-label">Present Address:</span>
-                <span className="orig-value" style={{fontSize:'2.2mm', lineHeight:'1.1', whiteSpace:'normal'}}>{member.presentAddress}</span>
+                <span className="orig-value" style={{fontSize:'2.2mm', lineHeight:'1.2', whiteSpace:'normal'}}>{member.presentAddress}</span>
               </div>
               <div className="orig-field"><span className="orig-label">Birthdate:</span><span className="orig-value">{member.birthdate}</span></div>
               <div className="orig-field"><span className="orig-label">Gender:</span><span className="orig-value">{member.gender}</span></div>

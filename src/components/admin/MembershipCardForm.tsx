@@ -48,8 +48,9 @@ export default function MembershipCardForm({
   onCancel,
   isSubmitting: parentIsSubmitting,
 }: MembershipCardFormProps) {
-  const [membersList, setMembersList] = useState<Partial<Membership>[]>(
-    initialData ? [initialData] : [DEFAULT_MEMBER]
+  // Use a nested array structure to represent batches of 20
+  const [membersList, setMembersList] = useState<Partial<Membership>[][]>(
+    initialData ? [[initialData]] : [[DEFAULT_MEMBER]]
   );
 
   const [logos] = useState({
@@ -62,25 +63,21 @@ export default function MembershipCardForm({
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [printMembers, setPrintMembers] = useState<Membership[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Pagination / Batching
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20; 
-
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentMembers = membersList.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(membersList.length / itemsPerPage);
+  const totalPages = membersList.length;
+  const currentMembers = membersList[currentPage - 1] || [];
 
   const nextPage = () => setCurrentPage(p => Math.min(p + 1, totalPages));
   const prevPage = () => setCurrentPage(p => Math.max(p - 1, 1));
 
   const handleChange = (index: number, field: keyof Membership, value: string) => {
-    const trueIndex = indexOfFirstItem + index;
     setMembersList(prev => {
       const newList = [...prev];
-      const member = { ...newList[trueIndex], [field]: value };
-      
+      const currentBatch = [...newList[currentPage - 1]];
+      const member = { ...currentBatch[index], [field]: value };
+
       if (field === 'coopName') {
         const newRecords = [...(member.records || DEFAULT_RECORDS)];
         const record2025Index = newRecords.findIndex(r => r.year === "2025");
@@ -89,27 +86,28 @@ export default function MembershipCardForm({
           member.records = newRecords;
         }
       }
-      
-      newList[trueIndex] = member;
+
+      currentBatch[index] = member;
+      newList[currentPage - 1] = currentBatch;
       return newList;
     });
   };
 
   const handleRecordChange = (memberIndex: number, recordIndex: number, field: keyof MembershipRecord, value: string) => {
-    const trueIndex = indexOfFirstItem + memberIndex;
     setMembersList(prev => {
       const newList = [...prev];
-      const member = { ...newList[trueIndex] };
+      const currentBatch = [...newList[currentPage - 1]];
+      const member = { ...currentBatch[memberIndex] };
       const newRecords = [...(member.records || DEFAULT_RECORDS)];
       newRecords[recordIndex] = { ...newRecords[recordIndex], [field]: value };
       member.records = newRecords;
-      newList[trueIndex] = member;
+      currentBatch[memberIndex] = member;
+      newList[currentPage - 1] = currentBatch;
       return newList;
     });
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
-    const trueIndex = indexOfFirstItem + index;
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -117,7 +115,9 @@ export default function MembershipCardForm({
         const result = reader.result as string;
         setMembersList(prev => {
           const newList = [...prev];
-          newList[trueIndex] = { ...newList[trueIndex], imageUrl: result };
+          const currentBatch = [...newList[currentPage - 1]];
+          currentBatch[index] = { ...currentBatch[index], imageUrl: result };
+          newList[currentPage - 1] = currentBatch;
           return newList;
         });
       };
@@ -126,8 +126,7 @@ export default function MembershipCardForm({
   };
 
   const handlePrintCurrent = (index: number) => {
-    const trueIndex = indexOfFirstItem + index;
-    const member = membersList[trueIndex];
+    const member = currentMembers[index];
     if (!member.name) {
       alert("Please enter a name before printing.");
       return;
@@ -137,13 +136,13 @@ export default function MembershipCardForm({
   };
 
   const handlePrintAll = () => {
-    // Strictly print only the first batch of 20 cards
-    const firstBatch = membersList.slice(0, 20).filter(m => m.name) as Membership[];
-    if (firstBatch.length === 0) {
-      alert("No valid members in the first 20 to print.");
+    // Flatten all batches to print everyone
+    const allValidMembers = membersList.flat().filter(m => m.name) as Membership[];
+    if (allValidMembers.length === 0) {
+      alert("No valid members found to print.");
       return;
     }
-    setPrintMembers(firstBatch);
+    setPrintMembers(allValidMembers);
     setShowPrintPreview(true);
   };
 
@@ -155,7 +154,7 @@ export default function MembershipCardForm({
     try {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
-      
+
       let allNewMembers: Partial<Membership>[] = [];
 
       for (const sheetName of workbook.SheetNames) {
@@ -165,7 +164,7 @@ export default function MembershipCardForm({
         const headerRowIndex = jsonData.findIndex(row => 
           row.some(cell => String(cell).toLowerCase().includes('family') || String(cell).toLowerCase().includes('first name'))
         );
-        
+
         if (headerRowIndex === -1) continue;
 
         const skipKeywords = ['billing', 'rate', 'total', 'grand total', 'count'];
@@ -199,8 +198,10 @@ export default function MembershipCardForm({
 
           let birthdate = getVal(bIdx);
           if (bIdx !== -1 && typeof row[bIdx] === 'number') {
-             const date = new Date((row[bIdx] - (25567 + 2)) * 86400 * 1000);
-             birthdate = date.toLocaleDateString('en-US');
+             // Excel dates are serial numbers. 25569 is the offset for 1970-01-01.
+             // Using UTC avoids timezone shifts that cause the "-1 day" bug.
+             const date = new Date(Math.round((row[bIdx] - 25569) * 86400 * 1000));
+             birthdate = `${date.getUTCMonth() + 1}/${date.getUTCDate()}/${date.getUTCFullYear()}`;
           }
 
           let address = "";
@@ -219,8 +220,21 @@ export default function MembershipCardForm({
       }
 
       if (allNewMembers.length > 0) {
-        if (membersList.length === 1 && !membersList[0].name) setMembersList(allNewMembers);
-        else if(confirm(`Found ${allNewMembers.length} members. Click OK to generate all cards.`)) setMembersList(allNewMembers);
+        // Chunk the imported members into batches of 20
+        const chunk = (arr: any[], size: number) => 
+          Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
+            arr.slice(i * size, i * size + size)
+          );
+
+        const batched = chunk(allNewMembers, 20);
+
+        if (membersList.length === 1 && !membersList[0][0].name) {
+          setMembersList(batched);
+          setCurrentPage(1);
+        } else if(confirm(`Found ${allNewMembers.length} members. Click OK to generate all cards.`)) {
+          setMembersList(batched);
+          setCurrentPage(1);
+        }
       } else alert("No valid records found.");
     } catch (error: any) {
       alert("Failed to parse Excel file.");
@@ -231,9 +245,11 @@ export default function MembershipCardForm({
   };
 
   const handleSave = async () => {
+    const flattenedMembers = membersList.flat();
     const requiredFields = ['name', 'presentAddress', 'birthdate', 'gender'];
-    for (let i = 0; i < membersList.length; i++) {
-        const member = membersList[i];
+
+    for (let i = 0; i < flattenedMembers.length; i++) {
+        const member = flattenedMembers[i];
         const missing = requiredFields.filter(field => !member[field as keyof Membership]);
         if (missing.length > 0) {
             alert(`Card #${i + 1} (${member.name || 'Unnamed'}) is missing: ${missing.join(', ')}`);
@@ -246,7 +262,7 @@ export default function MembershipCardForm({
       const auth = getAuth(app);
       if (!auth.currentUser) await signInAnonymously(auth);
 
-      const batchPromises = membersList.map(async (member) => {
+      const batchPromises = flattenedMembers.map(async (member) => {
           const dataToSave = {
             name: member.name || "",
             presentAddress: member.presentAddress || "",
@@ -266,7 +282,7 @@ export default function MembershipCardForm({
       });
 
       await Promise.all(batchPromises);
-      alert(`Successfully saved ${membersList.length} records!`);
+      alert(`Successfully saved ${flattenedMembers.length} records!`);
       onSuccess(); 
     } catch (error: any) {
       alert(`Failed to save: ${error.message}`);
@@ -276,12 +292,24 @@ export default function MembershipCardForm({
   };
 
   const removeCard = (index: number) => {
-    const trueIndex = indexOfFirstItem + index;
-    if (membersList.length === 1) { setMembersList([DEFAULT_MEMBER]); return; }
-    setMembersList(prev => prev.filter((_, i) => i !== trueIndex));
+    setMembersList(prev => {
+      const newList = [...prev];
+      const currentBatch = newList[currentPage - 1].filter((_, i) => i !== index);
+
+      if (currentBatch.length === 0 && newList.length > 1) {
+        // If batch becomes empty and isn't the only batch, remove it
+        const result = newList.filter((_, i) => i !== currentPage - 1);
+        setCurrentPage(p => Math.max(1, p - 1));
+        return result;
+      }
+
+      newList[currentPage - 1] = currentBatch.length > 0 ? currentBatch : [DEFAULT_MEMBER];
+      return newList;
+    });
   };
 
   const isSubmitting = localIsSubmitting || parentIsSubmitting;
+  const totalCount = membersList.flat().filter(m => m.name || m.presentAddress).length;
 
   if (showPrintPreview) {
     return <MembershipPrint memberships={printMembers} onClose={() => setShowPrintPreview(false)} />;
@@ -313,7 +341,7 @@ export default function MembershipCardForm({
 
         .text-maroon { color: #520000; }
         .text-brown { color: #3d1e00; }
-        
+
         input { background: transparent; border: none; outline: none; width: 100%; font-family: inherit; font-size: inherit; font-weight: inherit; color: inherit; }
         input:focus { background: rgba(255, 255, 0, 0.1); }
 
@@ -390,12 +418,12 @@ export default function MembershipCardForm({
         <div style={{display:'flex', justifyContent:'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px'}}>
              <div className="flex flex-col items-start gap-1">
                 <h3 className="font-bold text-xl text-gray-800">Membership Editor</h3>
-                <span className="text-sm text-gray-500">{membersList.length} total members. Batch {currentPage}/{totalPages}.</span>
+                <span className="text-sm text-gray-500">{totalCount} total members. Batch {currentPage}/{totalPages}.</span>
              </div>
-             
+
              <div className="action-buttons">
                 <input type="file" ref={fileInputRef} onChange={handleExcelImport} accept=".xlsx, .xls" className="hidden" />
-                
+
                 <div style={{display:'flex', gap:'5px', marginRight:'10px'}}>
                   <button className="btn-generic btn-nav" onClick={prevPage} disabled={currentPage === 1}>&lt;</button>
                   <span className="flex items-center font-bold px-2">{currentPage}</span>
@@ -407,7 +435,7 @@ export default function MembershipCardForm({
                     {localIsSubmitting ? <Loader2 className="animate-spin" size={18} /> : <UploadCloud size={18} />} Import
                 </button>
                 <button className="btn-generic btn-print" onClick={handlePrintAll} disabled={isSubmitting}>
-                    <Printer size={18} /> Print All ({membersList.length})
+                    <Printer size={18} /> Print All ({totalCount})
                 </button>
                 <button className="btn-generic btn-save" onClick={handleSave} disabled={isSubmitting}>
                    {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} Save All
@@ -420,7 +448,7 @@ export default function MembershipCardForm({
         {currentMembers.map((formData, index) => (
             <div key={index} className="flex flex-col items-center w-full max-w-[1100px] border-b border-gray-600 pb-12 last:border-none">
                 <div className="flex justify-between items-center w-full px-4 mb-4 text-white font-bold">
-                    <span>Card #{indexOfFirstItem + index + 1} - {formData.name || 'UNNAMED'}</span>
+                    <span>Card #{(currentPage - 1) * 20 + index + 1} - {formData.name || 'UNNAMED'}</span>
                     <div className="flex gap-4">
                         <button onClick={() => handlePrintCurrent(index)} className="flex items-center gap-2 text-green-400 hover:text-green-300">
                             <Printer size={18} /> Print This
@@ -477,7 +505,7 @@ export default function MembershipCardForm({
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="sig-box font-sans">
                                         <span className="sig-label">Member&apos;s Signature:</span>
                                     </div>

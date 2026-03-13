@@ -62,7 +62,7 @@ export default function MembershipCardForm({
   const [localIsSubmitting, setLocalIsSubmitting] = useState(false);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [printMembers, setPrintMembers] = useState<Membership[]>([]);
-  const [importedFilename, setImportedFilename] = useState<string>("");
+  const [batchFilenames, setBatchFilenames] = useState<string[]>([""]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Pagination / Batching
@@ -148,108 +148,118 @@ export default function MembershipCardForm({
   };
 
   const handleExcelImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Capture the original filename (remove extension)
-    const baseName = file.name.replace(/\.[^/.]+$/, "");
-    setImportedFilename(baseName);
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     setLocalIsSubmitting(true);
     try {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
+      const allNewBatches: Partial<Membership>[][] = [];
+      const allNewFilenames: string[] = [];
 
-      let allNewMembers: Partial<Membership>[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const baseName = file.name.replace(/\.[^/.]+$/, "");
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data);
 
-      for (const sheetName of workbook.SheetNames) {
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+        // Ensure we iterate through every single sheet in the workbook
+        workbook.SheetNames.forEach((sheetName) => {
+          const worksheet = workbook.Sheets[sheetName];
+          // Use { defval: "" } to ensure empty cells are preserved if needed for column indexing
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" }) as any[][];
 
-        const headerRowIndex = jsonData.findIndex(row => 
-          row.some(cell => String(cell).toLowerCase().includes('family') || String(cell).toLowerCase().includes('first name'))
-        );
-
-        if (headerRowIndex === -1) continue;
-
-        const skipKeywords = ['billing', 'rate', 'total', 'grand total', 'count'];
-        const headerRow = jsonData[headerRowIndex] as any[];
-        const findCol = (keywords: string[]) => 
-          headerRow.findIndex(cell => 
-            keywords.some(kw => String(cell || '').toLowerCase().includes(kw))
+          // Look for the header row more flexibly
+          const headerRowIndex = jsonData.findIndex(row => 
+            row.some(cell => {
+              const val = String(cell || "").toLowerCase();
+              return val.includes('family') || 
+                     val.includes('first name') || 
+                     val.includes('full name') || 
+                     val.includes('member name') ||
+                     val.includes('surname') ||
+                     val.includes('last name') ||
+                     val.includes('given name') ||
+                     val.includes('name') ||
+                     val.includes('address') ||
+                     val.includes('gender') ||
+                     val.includes('birth');
+            })
           );
 
-        const lNameIdx = findCol(['family', 'surname', 'last name', 'last_name']);
-        const fNameIdx = findCol(['first name', 'given name', 'first_name']);
-        const mNameIdx = findCol(['middle name', 'middle initial', 'm.i.', 'middle_name']);
-        const fullNameIdx = findCol(['full name', 'fullname', 'member name', 'name of member', 'complete name']);
-        const gIdx = findCol(['gender', 'sex']);
-        const bIdx = findCol(['birthdate', 'birth date', 'b-date', 'date of birth', 'dob', 'bday']);
-        const primaryAddrIdx = findCol(['present address', 'current address', 'present_address', 'residential address']);
-        const secondaryAddrIdx = findCol(['address', 'residence', 'location', 'addr', 'home', 'brgy', 'city', 'home address']);
-        const addrIndices = [primaryAddrIdx, secondaryAddrIdx].filter(idx => idx !== -1);
+          if (headerRowIndex === -1) return; // Skip sheets that don't look like member lists
 
-        const recordsToImport = jsonData.slice(headerRowIndex + 1).filter(row => {
-          const lName = lNameIdx !== -1 ? String(row[lNameIdx] || '').toLowerCase().trim() : '';
-          const fName = fNameIdx !== -1 ? String(row[fNameIdx] || '').toLowerCase().trim() : '';
-          const fullName = fullNameIdx !== -1 ? String(row[fullNameIdx] || '').toLowerCase().trim() : '';
-          return (lName || fName || fullName) && !skipKeywords.includes(lName) && !skipKeywords.includes(fName) && !skipKeywords.includes(fullName);
-        });
+          const skipKeywords = ['billing', 'rate', 'total', 'grand total', 'count'];
+          const headerRow = jsonData[headerRowIndex] as any[];
+          const findCol = (keywords: string[]) => 
+            headerRow.findIndex(cell => 
+              keywords.some(kw => String(cell || '').toLowerCase().includes(kw))
+            );
 
-        const sheetMembers = recordsToImport.map(row => {
-          const getVal = (idx: number) => (idx !== -1 && row[idx] !== undefined && row[idx] !== null) ? String(row[idx]).trim() : '';
-          let fullName = fullNameIdx !== -1 && getVal(fullNameIdx) ? getVal(fullNameIdx) : [getVal(fNameIdx), getVal(mNameIdx), getVal(lNameIdx)].filter(p => p).join(' ');
-          fullName = fullName.toUpperCase();
+          const lNameIdx = findCol(['family', 'surname', 'last name', 'last_name']);
+          const fNameIdx = findCol(['first name', 'given name', 'first_name']);
+          const mNameIdx = findCol(['middle name', 'middle initial', 'm.i.', 'middle_name']);
+          const fullNameIdx = findCol(['full name', 'fullname', 'member name', 'name of member', 'complete name']);
+          const gIdx = findCol(['gender', 'sex']);
+          const bIdx = findCol(['birthdate', 'birth date', 'b-date', 'date of birth', 'dob', 'bday']);
+          const primaryAddrIdx = findCol(['present address', 'current address', 'present_address', 'residential address']);
+          const secondaryAddrIdx = findCol(['address', 'residence', 'location', 'addr', 'home', 'brgy', 'city', 'home address']);
+          const addrIndices = [primaryAddrIdx, secondaryAddrIdx].filter(idx => idx !== -1);
 
-          let birthdate = getVal(bIdx);
-          if (bIdx !== -1 && typeof row[bIdx] === 'number') {
-             // Excel dates are serial numbers. 25569 is the offset for 1970-01-01.
-             // Using UTC avoids timezone shifts that cause the "-1 day" bug.
-             const date = new Date(Math.round((row[bIdx] - 25569) * 86400 * 1000));
-             birthdate = `${date.getUTCMonth() + 1}/${date.getUTCDate()}/${date.getUTCFullYear()}`;
+          const recordsToImport = jsonData.slice(headerRowIndex + 1).filter(row => {
+            const lName = lNameIdx !== -1 ? String(row[lNameIdx] || '').toLowerCase().trim() : '';
+            const fName = fNameIdx !== -1 ? String(row[fNameIdx] || '').toLowerCase().trim() : '';
+            const fullName = fullNameIdx !== -1 ? String(row[fullNameIdx] || '').toLowerCase().trim() : '';
+            return (lName || fName || fullName) && !skipKeywords.includes(lName) && !skipKeywords.includes(fName) && !skipKeywords.includes(fullName);
+          });
+
+          const sheetMembers = recordsToImport.map(row => {
+            const getVal = (idx: number) => (idx !== -1 && row[idx] !== undefined && row[idx] !== null) ? String(row[idx]).trim() : '';
+            let fullName = fullNameIdx !== -1 && getVal(fullNameIdx) ? getVal(fullNameIdx) : [getVal(fNameIdx), getVal(mNameIdx), getVal(lNameIdx)].filter(p => p).join(' ');
+            fullName = fullName.toUpperCase();
+
+            let birthdate = getVal(bIdx);
+            if (bIdx !== -1 && typeof row[bIdx] === 'number') {
+               const date = new Date(Math.round((row[bIdx] - 25569) * 86400 * 1000));
+               birthdate = `${date.getUTCMonth() + 1}/${date.getUTCDate()}/${date.getUTCFullYear()}`;
+            }
+
+            let address = "";
+            for (const idx of addrIndices) {
+              const val = getVal(idx);
+              if (val && val.length > 1) { address = val; break; }
+            }
+
+            const coopName = sheetName.toUpperCase();
+            const records = DEFAULT_RECORDS.map(r => r.year === "2025" ? { ...r, package: "DIGNITY", validity: "1 YEAR", representative: coopName, remarks: "NEW" } : { ...r });
+
+            return { ...DEFAULT_MEMBER, name: fullName, presentAddress: address.toUpperCase(), birthdate: birthdate, gender: getVal(gIdx).toUpperCase(), coopName: coopName, records: records };
+          });
+
+          if (sheetMembers.length > 0) {
+            allNewBatches.push(sheetMembers);
+            allNewFilenames.push(`${baseName} - ${sheetName}`);
           }
-
-          let address = "";
-          for (const idx of addrIndices) {
-            const val = getVal(idx);
-            if (val && val.length > 1) { address = val; break; }
-          }
-
-          const coopName = sheetName.toUpperCase();
-          const records = DEFAULT_RECORDS.map(r => r.year === "2025" ? { ...r, package: "DIGNITY", validity: "1 YEAR", representative: coopName, remarks: "NEW" } : { ...r });
-
-          return { ...DEFAULT_MEMBER, name: fullName, presentAddress: address.toUpperCase(), birthdate: birthdate, gender: getVal(gIdx).toUpperCase(), coopName: coopName, records: records };
         });
-
-        allNewMembers = [...allNewMembers, ...sheetMembers];
       }
 
-      if (allNewMembers.length > 0) {
-        // Chunk the imported members into batches of 20
-        const chunk = (arr: any[], size: number) => 
-          Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
-            arr.slice(i * size, i * size + size)
-          );
-
-        const batched = chunk(allNewMembers, 20);
-
+      if (allNewBatches.length > 0) {
+        const confirmMsg = `Found ${allNewBatches.length} batches across all files. Click OK to load them into the editor.`;
         if (membersList.length === 1 && !membersList[0][0].name) {
-          setMembersList(batched);
+          setMembersList(allNewBatches);
+          setBatchFilenames(allNewFilenames);
           setCurrentPage(1);
-        } else if(confirm(`Found ${allNewMembers.length} members. Click OK to generate all cards.`)) {
-          setMembersList(batched);
+        } else if(confirm(confirmMsg)) {
+          setMembersList(allNewBatches);
+          setBatchFilenames(allNewFilenames);
           setCurrentPage(1);
         }
-      } else alert("No valid records found.");
-    } catch (error: any) {
-      alert("Failed to parse Excel file.");
+      } else alert("No valid records found in any sheets.");    } catch (error: any) {
+      alert("Failed to parse files.");
     } finally {
       setLocalIsSubmitting(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
-  };
-
-  const handleSave = async () => {
+  };  const handleSave = async () => {
     const flattenedMembers = membersList.flat();
     const requiredFields = ['name', 'presentAddress', 'birthdate', 'gender'];
 
@@ -304,6 +314,7 @@ export default function MembershipCardForm({
       if (currentBatch.length === 0 && newList.length > 1) {
         // If batch becomes empty and isn't the only batch, remove it
         const result = newList.filter((_, i) => i !== currentPage - 1);
+        setBatchFilenames(fprev => fprev.filter((_, i) => i !== currentPage - 1));
         setCurrentPage(p => Math.max(1, p - 1));
         return result;
       }
@@ -317,9 +328,8 @@ export default function MembershipCardForm({
   const totalCount = membersList.flat().filter(m => m.name || m.presentAddress).length;
 
   if (showPrintPreview) {
-    return <MembershipPrint memberships={printMembers} onClose={() => setShowPrintPreview(false)} baseFilename={importedFilename} />;
+    return <MembershipPrint memberships={printMembers} onClose={() => setShowPrintPreview(false)} baseFilename={batchFilenames[currentPage - 1]} />;
   }
-
   return (
     <div className="flex flex-col items-center gap-8 w-full min-h-screen bg-[#444] p-5 font-sans overflow-y-auto">
       <style jsx global>{`
@@ -416,6 +426,51 @@ export default function MembershipCardForm({
         .btn-import { background: #0056b3; }
         .btn-cancel { background: #666; }
         .btn-nav { background: #444; }
+
+        .batch-selector {
+            width: 100%;
+            max-width: 1100px;
+            background: #2a2a2a;
+            padding: 10px 20px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 15px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .batch-select-label {
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            white-space: nowrap;
+            opacity: 0.7;
+        }
+        .batch-dropdown {
+            background: #333;
+            color: #fff;
+            border: 1px solid #444;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            outline: none;
+            cursor: pointer;
+            flex: 1;
+            max-width: 400px;
+        }
+        .batch-dropdown:hover { border-color: #8b0000; }
+        .batch-info-badge {
+            background: #8b0000;
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
       `}</style>
 
       <div className="editor-controls sticky top-0 z-50">
@@ -426,10 +481,9 @@ export default function MembershipCardForm({
              </div>
 
              <div className="action-buttons">
-                <input type="file" ref={fileInputRef} onChange={handleExcelImport} accept=".xlsx, .xls" className="hidden" />
+                <input type="file" ref={fileInputRef} onChange={handleExcelImport} accept=".xlsx, .xls" multiple className="hidden" />
 
-                <div style={{display:'flex', gap:'5px', marginRight:'10px'}}>
-                  <button className="btn-generic btn-nav" onClick={prevPage} disabled={currentPage === 1}>&lt;</button>
+                <div style={{display:'flex', gap:'5px', marginRight:'10px'}}>                  <button className="btn-generic btn-nav" onClick={prevPage} disabled={currentPage === 1}>&lt;</button>
                   <span className="flex items-center font-bold px-2">{currentPage}</span>
                   <button className="btn-generic btn-nav" onClick={nextPage} disabled={currentPage === totalPages}>&gt;</button>
                 </div>
@@ -448,11 +502,32 @@ export default function MembershipCardForm({
         </div>
       </div>
 
+      {/* BATCH SELECTOR (Compact Selection Type) */}
+      {batchFilenames[0] !== "" && (
+        <div className="batch-selector">
+            <span className="batch-select-label">Current Batch:</span>
+            <select 
+                className="batch-dropdown"
+                value={currentPage}
+                onChange={(e) => setCurrentPage(parseInt(e.target.value))}
+            >
+                {batchFilenames.map((name, idx) => (
+                    <option key={idx} value={idx + 1}>
+                        {idx + 1}. {name || `Batch ${idx + 1}`} ({membersList[idx]?.length || 0} members)
+                    </option>
+                ))}
+            </select>
+            <div className="batch-info-badge">
+                Total: {totalPages} Batches
+            </div>
+        </div>
+      )}
+
       <div className="membership-card-root w-full flex flex-col items-center gap-12">
         {currentMembers.map((formData, index) => (
             <div key={index} className="flex flex-col items-center w-full max-w-[1100px] border-b border-gray-600 pb-12 last:border-none">
                 <div className="flex justify-between items-center w-full px-4 mb-4 text-white font-bold">
-                    <span>Card #{(currentPage - 1) * 20 + index + 1} - {formData.name || 'UNNAMED'}</span>
+                    <span>Card #{index + 1} - {formData.name || 'UNNAMED'}</span>
                     <div className="flex gap-4">
                         <button onClick={() => handlePrintCurrent(index)} className="flex items-center gap-2 text-green-400 hover:text-green-300">
                             <Printer size={18} /> Print This

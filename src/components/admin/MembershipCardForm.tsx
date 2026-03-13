@@ -136,13 +136,13 @@ export default function MembershipCardForm({
   };
 
   const handlePrintAll = () => {
-    // Flatten all batches to print everyone
-    const allValidMembers = membersList.flat().filter(m => m.name) as Membership[];
-    if (allValidMembers.length === 0) {
-      alert("No valid members found to print.");
+    // Only print members from the current batch (up to 20)
+    const currentBatchValidMembers = currentMembers.filter(m => m.name) as Membership[];
+    if (currentBatchValidMembers.length === 0) {
+      alert("No valid members in this batch to print.");
       return;
     }
-    setPrintMembers(allValidMembers);
+    setPrintMembers(currentBatchValidMembers);
     setShowPrintPreview(true);
   };
 
@@ -435,7 +435,7 @@ export default function MembershipCardForm({
                     {localIsSubmitting ? <Loader2 className="animate-spin" size={18} /> : <UploadCloud size={18} />} Import
                 </button>
                 <button className="btn-generic btn-print" onClick={handlePrintAll} disabled={isSubmitting}>
-                    <Printer size={18} /> Print All ({totalCount})
+                    <Printer size={18} /> Print Current Batch ({currentMembers.filter(m => m.name).length})
                 </button>
                 <button className="btn-generic btn-save" onClick={handleSave} disabled={isSubmitting}>
                    {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} Save All
